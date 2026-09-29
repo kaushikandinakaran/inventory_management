@@ -1,0 +1,171 @@
+<!-- Add Category -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">New Category</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'manager_dashboard' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_category">
+                <div class="modal-body"><input type="text" class="form-control" name="category_name" placeholder="e.g. Produce" required></div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger w-100 fw-bold">Save</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Edit Category</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'manager_dashboard' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_category">
+                <div class="modal-body">
+                    <input type="hidden" name="category_id" id="edit_cat_id">
+                    <input type="text" class="form-control" name="category_name" id="edit_cat_name" required>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger w-100 fw-bold">Update</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Add Inventory Item</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'manager_dashboard' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_item">
+                <div class="modal-body p-4">
+                    <div class="mb-3"><label class="form-label text-secondary small">ITEM NAME</label><input type="text" class="form-control" name="item_name" required></div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-secondary small">VENDOR</label>
+                            <select class="form-select" name="vendor_id" required>
+                                {% for vendor in vendors %}<option value="{{ vendor.id }}">{{ vendor.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-secondary small">CATEGORY</label>
+                            <select class="form-select" name="category_id">
+                                <option value="">None</option>
+                                {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3"><label class="form-label text-secondary small">UNIT (e.g. Kg)</label><input type="text" class="form-control" name="unit_measure" required></div>
+                        <div class="col-6 mb-3"><label class="form-label text-secondary small">STOCK</label><input type="number" step="0.01" class="form-control" name="current_stock" value="0" required></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><label class="form-label text-secondary small">MIN QTY (Alert)</label><input type="number" step="0.01" class="form-control" name="min_qty" required></div>
+                        <div class="col-6"><label class="form-label text-secondary small">MAX QTY (Target)</label><input type="number" step="0.01" class="form-control" name="max_qty" required></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger w-100 fw-bold">Save Item</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item -->
+<div class="modal fade" id="editItemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Edit Item</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'manager_dashboard' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_item">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="item_id" id="edit_item_id">
+                    <div class="mb-3"><label class="form-label text-secondary small">ITEM NAME</label><input type="text" class="form-control" name="item_name" id="edit_item_name" required></div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-secondary small">VENDOR</label>
+                            <select class="form-select" name="vendor_id" id="edit_vendor_id" required>
+                                {% for vendor in vendors %}<option value="{{ vendor.id }}">{{ vendor.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-secondary small">CATEGORY</label>
+                            <select class="form-select" name="category_id" id="edit_category_id">
+                                <option value="">None</option>
+                                {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3"><label class="form-label text-secondary small">UNIT MEASURE</label><input type="text" class="form-control" name="unit_measure" id="edit_unit_measure" required></div>
+                        <div class="col-6 mb-3"><label class="form-label text-secondary small">CURRENT STOCK</label><input type="number" step="0.01" class="form-control" name="current_stock" id="edit_current_stock" required></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><label class="form-label text-secondary small">MIN QTY</label><input type="number" step="0.01" class="form-control" name="min_qty" id="edit_min_qty" required></div>
+                        <div class="col-6"><label class="form-label text-secondary small">MAX QTY</label><input type="number" step="0.01" class="form-control" name="max_qty" id="edit_max_qty" required></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger w-100 fw-bold">Update Item</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Vendor Modal -->
+<div class="modal fade" id="addVendorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Add Distributor</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'manager_dashboard' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_vendor">
+                <div class="modal-body p-4">
+                    <div class="mb-3"><label class="form-label text-secondary small">VENDOR NAME</label><input type="text" class="form-control" name="vendor_name" required></div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-secondary small">CONTACT METHOD</label>
+                            <select class="form-select" name="contact_method" required>
+                                <option value="Email">Email</option>
+                                <option value="SMS">SMS Text</option>
+                                <option value="API">API / Portal</option>
+                                <option value="Phone">Phone</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3"><label class="form-label text-secondary small">LEAD TIME (DAYS)</label><input type="number" class="form-control" name="lead_time_days" value="2" min="0" required></div>
+                    </div>
+                    <div class="mb-3"><label class="form-label text-secondary small">CONTACT INFO (Email/Phone)</label><input type="text" class="form-control" name="contact_value" required></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger w-100 fw-bold">Save Vendor</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal fade" id="uploadDocModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Upload Document</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'manager_dashboard' %}" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload_document">
+                <div class="modal-body p-4">
+                    <div class="mb-3"><label class="form-label text-secondary small">DOCUMENT DISPLAY NAME</label><input type="text" class="form-control" name="doc_name" placeholder="e.g. Health Permit 2026" required></div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">CATEGORY</label>
+                        <select class="form-select" name="doc_category" required>
+                            <option value="License/Permit">License / Permit</option>
+                            <option value="Contract">Vendor Contract</option>
+                            <option value="Invoice">Invoice / Receipt</option>
+                            <option value="Employee Record">Employee Record</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-0"><label class="form-label text-secondary small">SELECT FILE</label><input class="form-control" type="file" name="document_file" required></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger w-100 fw-bold">Upload File</button></div>
+            </form>
+        </div>
+    </div>
+</div>

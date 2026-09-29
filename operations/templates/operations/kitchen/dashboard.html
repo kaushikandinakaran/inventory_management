@@ -1,0 +1,374 @@
+{% extends 'operations/base.html' %}
+
+{% block title %}Kitchen Command{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- LEFT ICON RAIL --- */
+    .left-rail {
+        width: 80px; background-color: var(--surface-dark); border-right: 1px solid var(--border-color);
+        display: flex; flex-direction: column; align-items: center; padding-top: 20px; flex-shrink: 0; z-index: 100;
+        overflow-y: auto; overflow-x: hidden;
+    }
+    .left-rail::-webkit-scrollbar { display: none; }
+    .rail-btn {
+        width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        color: var(--text-secondary); font-size: 1.5rem; margin-bottom: 15px; transition: all 0.2s; text-decoration: none; flex-shrink: 0;
+    }
+    .rail-btn.active, .rail-btn:hover { background-color: var(--bg-dark); color: var(--accent-red); box-shadow: inset 0 0 0 1px var(--border-color); }
+
+    /* --- CENTER BENTO GRID --- */
+    .center-pane { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--bg-dark); position: relative; }
+    .search-header { padding: 20px 30px; background-color: var(--bg-dark); border-bottom: 1px solid var(--border-color); z-index: 10; flex-shrink: 0;}
+    .search-bar {
+        border-radius: 12px; padding: 15px 20px; font-size: 1.1rem; background-color: var(--surface-dark); border: 1px solid var(--border-color);
+        color: #ffffff !important; transition: all 0.2s ease;
+    }
+    .search-bar:focus { border-color: var(--accent-red); box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.15); outline: none; background-color: var(--surface-hover); }
+    .search-bar::placeholder { color: var(--text-secondary) !important; opacity: 1; }
+
+    .inventory-scroll { padding: 30px; overflow-y: auto; flex-grow: 1; height: 100%; }
+    .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; padding-bottom: 80px; }
+    .item-card { background: var(--surface-dark); border-radius: 20px; padding: 15px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; }
+    .item-image { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; }
+    .item-name { font-weight: 700; font-size: 1.1rem; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Controls & Buttons */
+    .inline-controls { background: var(--bg-dark); border-radius: 12px; padding: 5px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-color); }
+    .btn-inline-qty { width: 35px; height: 35px; border-radius: 8px; border: none; background: var(--surface-dark); color: var(--text-primary); font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .btn-inline-qty:active { background: #333; }
+    .input-inline-qty { width: 40px; text-align: center; background: transparent; border: none; color: var(--accent-red); font-weight: 800; font-size: 1.2rem; }
+    .input-inline-qty:focus { outline: none; }
+    .btn-log { border-radius: 10px; font-weight: 700; background-color: var(--accent-red); border: none; color: white; padding: 0 15px; height: 35px; }
+    .btn-add-cart { border-radius: 10px; font-weight: 700; background-color: #4cc9f0; border: none; color: #0f0f11; padding: 0 15px; height: 35px; }
+
+    /* --- RIGHT ACTION DOCK --- */
+    .right-dock { width: 420px; background-color: var(--surface-dark); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+    .dock-header { padding: 25px 20px 20px 20px; border-bottom: 1px solid var(--border-color); background: var(--surface-dark); flex-shrink: 0;}
+    .dock-body { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;}
+    .delivery-panel { background: var(--bg-dark); border-radius: 16px; border: 1px solid #ffb703; overflow: hidden; margin-bottom: 20px; }
+    .delivery-header { background: rgba(255, 183, 3, 0.1); color: #ffb703; padding: 15px; font-weight: 800; border-bottom: 1px solid rgba(255, 183, 3, 0.2); }
+    .delivery-row { padding: 12px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .dock-qty-btn { width: 35px; height: 35px; border-radius: 8px; background: var(--surface-dark); border: 1px solid var(--border-color); color: white; }
+    .dock-qty-input { width: 50px; background: transparent; border: none; color: white; text-align: center; font-weight: bold; font-size: 1.2rem; }
+    .cart-item { background: var(--bg-dark); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;}
+
+    .form-switch .form-check-input { width: 3em; height: 1.5em; background-color: var(--bg-dark); border-color: var(--border-color); cursor: pointer; }
+    .form-switch .form-check-input:checked { background-color: var(--accent-red); border-color: var(--accent-red); }
+    .text-visible-gray { color: var(--text-secondary) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 1. LEFT ICON RAIL -->
+<div class="left-rail shadow-lg">
+    <div class="mb-4 mt-3 text-center">
+        <i class="bi bi-fire fs-2" style="color: var(--accent-red);"></i>
+    </div>
+
+    <a href="#" class="rail-btn active" id="btnModeInventory" title="Log Inventory Usage" onclick="switchMode('inventory')">
+        <i class="bi bi-grid-fill"></i>
+    </a>
+    <a href="#" class="rail-btn" id="btnModeOrder" title="Special Order Pad" onclick="switchMode('order')">
+        <i class="bi bi-clipboard2-plus"></i>
+    </a>
+    <hr class="w-50 border-secondary my-2">
+    <a href="#" class="rail-btn cat-btn active-cat" data-cat-id="all" title="All Items" onclick="filterCategory('all', this)">
+        <span style="font-size: 1rem; font-weight: 800;">ALL</span>
+    </a>
+
+    {% for cat in categories %}
+    <a href="#" class="rail-btn cat-btn" data-cat-id="{{ cat.id }}" title="{{ cat.name }}" onclick="filterCategory('{{ cat.id }}', this)">
+        <span style="font-size: 1.1rem; font-weight: 800;">{{ cat.name|slice:":1"|upper }}</span>
+    </a>
+    {% endfor %}
+
+    <a href="{% url 'kitchen_logout' %}" class="rail-btn mt-auto mb-4" style="color: #4cc9f0;" title="End Shift"><i class="bi bi-box-arrow-right"></i></a>
+</div>
+
+<!-- 2. CENTER BENTO GRID -->
+<div class="center-pane">
+    <!-- INVENTORY VIEW -->
+    <div id="viewInventory" style="display: flex; flex-direction: column; height: 100%;">
+        <div class="search-header d-flex justify-content-between align-items-center">
+            <h3 class="fw-bold m-0"><i class="bi bi-box-seam me-2"></i> Log Usage</h3>
+            <div class="input-group w-50">
+                <span class="input-group-text bg-transparent border-0 position-absolute" style="left: 10px; top: 10px; z-index: 5;"><i class="bi bi-search fs-5 text-visible-gray"></i></span>
+                <input type="text" id="searchInputInv" class="form-control search-bar" style="padding-left: 45px;" placeholder="Search stock..." onkeyup="applyFilters('Inv')">
+            </div>
+        </div>
+
+        <div class="inventory-scroll">
+            <div class="item-grid">
+                {% for item in items %}
+                <div class="item-card js-item-inv" data-name="{{ item.name|lower }}" data-category-id="{{ item.category.id|default:'none' }}">
+                    <div class="d-flex align-items-center mb-4">
+                        <img src="https://ui-avatars.com/api/?name={{ item.name }}&background=26262b&color=fff&bold=true" class="item-image me-3">
+                        <div style="overflow: hidden;">
+                            <h5 class="item-name" title="{{ item.name }}">{{ item.name }}</h5>
+                            <small style="font-weight: 500;" class="text-visible-gray">
+                                {% if item.current_stock <= item.min_qty %}
+                                    <span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> {{ item.current_stock }} {{ item.unit_measure }}</span>
+                                {% else %}
+                                    Shelf: <span class="text-white">{{ item.current_stock }}</span> {{ item.unit_measure }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    {% if item.current_stock > 0 %}
+                    <form method="POST" action="{% url 'kitchen_dashboard' %}" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="log_usage">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        <div class="inline-controls">
+                            <div class="d-flex align-items-center">
+                                <button type="button" class="btn-inline-qty" onclick="adjQty('inv_{{ item.id }}', -1, {{ item.current_stock }})"><i class="bi bi-dash"></i></button>
+                                <input type="number" name="qty_deducted" id="inv_{{ item.id }}" class="input-inline-qty" value="1" min="1" max="{{ item.current_stock }}" readonly>
+                                <button type="button" class="btn-inline-qty" onclick="adjQty('inv_{{ item.id }}', 1, {{ item.current_stock }})"><i class="bi bi-plus"></i></button>
+                            </div>
+                            <button type="submit" class="btn-log shadow-sm">Log</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="inline-controls justify-content-center" style="background: rgba(230, 57, 70, 0.1); border-color: rgba(230, 57, 70, 0.2);">
+                        <span class="text-danger fw-bold small"><i class="bi bi-x-circle me-1"></i> Out of Stock</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ORDER PAD VIEW -->
+    <div id="viewOrderPad" style="display: none; flex-direction: column; height: 100%;">
+        <div class="search-header d-flex justify-content-between align-items-center" style="background-color: #161c2d; border-bottom-color: #4cc9f0;">
+            <h3 class="fw-bold m-0" style="color: #4cc9f0;"><i class="bi bi-cart-plus me-2"></i> Request Items</h3>
+            <div class="input-group w-50">
+                <span class="input-group-text bg-transparent border-0 position-absolute" style="left: 10px; top: 10px; z-index: 5;"><i class="bi bi-search fs-5 text-visible-gray"></i></span>
+                <input type="text" id="searchInputOrd" class="form-control search-bar" style="padding-left: 45px;" placeholder="Search menu..." onkeyup="applyFilters('Ord')">
+            </div>
+        </div>
+        <div class="inventory-scroll">
+            <h5 class="fw-bold mb-3 text-visible-gray">Full Catalog</h5>
+            <div class="item-grid">
+                {% for item in items %}
+                <div class="item-card js-item-ord" data-name="{{ item.name|lower }}" data-category-id="{{ item.category.id|default:'none' }}">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="https://ui-avatars.com/api/?name={{ item.name }}&background=26262b&color=fff&bold=true" class="item-image me-3">
+                        <div><h5 class="item-name">{{ item.name }}</h5></div>
+                    </div>
+                    <button type="button" class="btn btn-outline-light w-100" style="border-radius: 10px; font-weight: 600;" onclick="addToCart({{ item.id }}, '{{ item.name }}', '{{ item.unit_measure }}')">Select</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. RIGHT LIVE ACTION DOCK -->
+<div class="right-dock shadow">
+    <div class="dock-header" id="dockHeaderInv">
+        <h4 class="fw-bold m-0"><i class="bi bi-truck text-warning me-2"></i> Deliveries</h4>
+    </div>
+    <div class="dock-header" id="dockHeaderOrd" style="display: none; background-color: #161c2d;">
+        <h4 class="fw-bold m-0" style="color: #4cc9f0;"><i class="bi bi-cart3 me-2"></i> Request Cart</h4>
+    </div>
+
+    <div class="dock-body p-0">
+        <div class="px-3 pt-3" id="alert-container">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-dark alert-dismissible fade show border-0 text-white shadow-sm" style="background-color: #2c2c31;" role="alert">
+                    <i class="bi bi-check2-circle text-success me-2 fs-5"></i> {{ message }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Inventory Deliveries List -->
+        <div id="dockContentInv" class="p-3 pt-0">
+            {% if pending_deliveries %}
+                {% for delivery in pending_deliveries %}
+                <div class="delivery-panel shadow-sm">
+                    <div class="delivery-header d-flex justify-content-between align-items-center">
+                        <span>{{ delivery.vendor.name }}</span>
+                        <span class="badge bg-warning text-dark">Arrived</span>
+                    </div>
+                    <form action="{% url 'kitchen_dashboard' %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="receive_delivery">
+                        <input type="hidden" name="delivery_id" value="{{ delivery.id }}">
+                        {% for item in delivery.delivery_items.all %}
+                        <div class="delivery-row">
+                            <div style="width: 50%;">
+                                <div class="fw-bold text-white mb-1" style="font-size: 0.9rem;">{{ item.item.name }}</div>
+                                <span class="badge" style="background: var(--surface-dark); border: 1px solid var(--border-color); color: #a0a0a5;">Exp: {{ item.expected_qty }}</span>
+                            </div>
+                            <div class="d-flex align-items-center bg-dark p-1 rounded">
+                                <button type="button" class="dock-qty-btn" onclick="updateDockQty('rec_{{ delivery.id }}_{{ item.item.id }}', -1)"><i class="bi bi-dash"></i></button>
+                                <input type="number" class="dock-qty-input" name="item_{{ item.item.id }}" id="rec_{{ delivery.id }}_{{ item.item.id }}" value="{{ item.expected_qty }}" min="0" readonly>
+                                <button type="button" class="dock-qty-btn" onclick="updateDockQty('rec_{{ delivery.id }}_{{ item.item.id }}', 1)"><i class="bi bi-plus"></i></button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="p-3 bg-dark">
+                            <button type="submit" class="btn btn-warning w-100 fw-bold text-dark"><i class="bi bi-check2-all me-1"></i> Confirm</button>
+                        </div>
+                    </form>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center mt-5 text-visible-gray"><i class="bi bi-clipboard-check" style="font-size: 4rem;"></i><p class="mt-3 fw-bold">No deliveries.</p></div>
+            {% endif %}
+        </div>
+
+        <!-- Order Pad Cart -->
+        <div id="dockContentOrd" style="display: none; height: 100%; flex-direction: column;">
+            <form action="{% url 'kitchen_dashboard' %}" method="POST" style="display: flex; flex-direction: column; height: 100%; margin: 0;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="special_request_bulk">
+
+                <div id="cartItemsContainer" class="p-3" style="flex-grow: 1; overflow-y: auto;">
+                    <div id="emptyCartMsg" class="text-center mt-5 text-visible-gray">
+                        <i class="bi bi-basket" style="font-size: 4rem;"></i>
+                        <p class="mt-3 fw-bold">Cart is empty.</p>
+                    </div>
+                </div>
+
+                <div class="p-4" style="background-color: var(--surface-dark); border-top: 1px solid var(--border-color);">
+                    <div class="form-check form-switch mb-3 d-flex align-items-center justify-content-between p-0">
+                        <label class="form-check-label fw-bold text-white m-0" for="emergencySwitch">
+                            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> Priority Request
+                            <div class="small fw-normal mt-1 text-visible-gray" style="margin-left: 25px;">Bypass schedule and order ASAP</div>
+                        </label>
+                        <input class="form-check-input m-0 ms-2" type="checkbox" name="is_emergency" id="emergencySwitch" style="height: 25px; width: 50px;">
+                    </div>
+
+                    <button type="submit" class="btn w-100 py-3 fw-bold fs-5 shadow" style="background-color: #4cc9f0; color: #0f0f11; border-radius: 12px;">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentCategoryId = 'all';
+    let currentMode = 'inventory';
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(function() {
+            let alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) { new bootstrap.Alert(alert).close(); });
+        }, 3000);
+    });
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('btnModeInventory').classList.toggle('active', mode === 'inventory');
+        document.getElementById('btnModeOrder').classList.toggle('active', mode === 'order');
+
+        document.getElementById('viewInventory').style.display = (mode === 'inventory') ? 'flex' : 'none';
+        document.getElementById('viewOrderPad').style.display = (mode === 'order') ? 'flex' : 'none';
+
+        document.getElementById('dockHeaderInv').style.display = (mode === 'inventory') ? 'block' : 'none';
+        document.getElementById('dockContentInv').style.display = (mode === 'inventory') ? 'block' : 'none';
+
+        document.getElementById('dockHeaderOrd').style.display = (mode === 'order') ? 'block' : 'none';
+        document.getElementById('dockContentOrd').style.display = (mode === 'order') ? 'flex' : 'none';
+
+        document.getElementById('searchInputInv').value = '';
+        document.getElementById('searchInputOrd').value = '';
+        applyFilters(mode === 'inventory' ? 'Inv' : 'Ord');
+    }
+
+    function filterCategory(catId, btnElement) {
+        currentCategoryId = catId;
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+            btn.classList.remove('active', 'active-cat');
+            btn.style.boxShadow = "none";
+        });
+        btnElement.classList.add('active', 'active-cat');
+        btnElement.style.boxShadow = "inset 0 0 0 1px var(--border-color)";
+
+        applyFilters('Inv');
+        applyFilters('Ord');
+    }
+
+    function applyFilters(target) {
+        let inputId = target === 'Inv' ? 'searchInputInv' : 'searchInputOrd';
+        let classPrefix = target === 'Inv' ? 'js-item-inv' : 'js-item-ord';
+
+        const input = document.getElementById(inputId).value.toLowerCase();
+        const cards = document.getElementsByClassName(classPrefix);
+
+        for (let i = 0; i < cards.length; i++) {
+            const itemName = cards[i].getAttribute('data-name');
+            const itemCat = cards[i].getAttribute('data-category-id');
+            const matchesSearch = itemName.includes(input);
+            const matchesCategory = (currentCategoryId === 'all' || itemCat === currentCategoryId);
+
+            cards[i].style.display = (matchesSearch && matchesCategory) ? "" : "none";
+        }
+    }
+
+    function adjQty(inputId, change, maxStock) {
+        let input = document.getElementById(inputId);
+        let newVal = parseInt(input.value) + change;
+        if (newVal >= 1 && newVal <= maxStock) {
+            input.value = newVal;
+        } else if (newVal > maxStock) {
+            input.parentElement.style.border = "1px solid var(--accent-red)";
+            setTimeout(() => input.parentElement.style.border = "none", 300);
+        }
+    }
+
+    function updateDockQty(inputId, change) {
+        let input = document.getElementById(inputId);
+        let newVal = parseInt(input.value) + change;
+        if (newVal >= 0) {
+            input.value = newVal;
+            if (newVal === 0 && inputId.startsWith('req_qty_')) {
+                document.getElementById('cart_row_' + inputId.split('_')[2]).remove();
+                checkCartEmpty();
+            }
+        }
+    }
+
+    function addToCart(itemId, itemName, unitMeasure) {
+        document.getElementById('emptyCartMsg').style.display = 'none';
+        let cartContainer = document.getElementById('cartItemsContainer');
+
+        if (document.getElementById('cart_row_' + itemId)) {
+            updateDockQty('req_qty_' + itemId, 1);
+            return;
+        }
+
+        let html = `
+        <div class="cart-item shadow-sm" id="cart_row_${itemId}">
+            <div>
+                <div class="fw-bold text-white">${itemName}</div>
+                <small class="text-visible-gray">${unitMeasure}</small>
+            </div>
+            <div class="d-flex align-items-center bg-dark p-1 rounded">
+                <button type="button" class="dock-qty-btn" onclick="updateDockQty('req_qty_${itemId}', -1)"><i class="bi bi-dash"></i></button>
+                <input type="number" class="dock-qty-input" name="req_qty_${itemId}" id="req_qty_${itemId}" value="1" min="0" readonly>
+                <button type="button" class="dock-qty-btn" onclick="updateDockQty('req_qty_${itemId}', 1)"><i class="bi bi-plus"></i></button>
+            </div>
+        </div>
+        `;
+        cartContainer.insertAdjacentHTML('beforeend', html);
+    }
+
+    function checkCartEmpty() {
+        let cartContainer = document.getElementById('cartItemsContainer');
+        if (cartContainer.querySelectorAll('.cart-item').length === 0) {
+            document.getElementById('emptyCartMsg').style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

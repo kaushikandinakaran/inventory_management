@@ -1,0 +1,35 @@
+<div class="sidebar" id="managerSidebar">
+    <!-- Header / Brand (Clickable to toggle) -->
+    <div class="mb-4 px-2 text-center text-md-start">
+        <span class="sidebar-brand m-0 text-truncate" onclick="toggleSidebar()" style="cursor: pointer; user-select: none;" title="Toggle Sidebar">
+            <i class="bi bi-fire"></i> <span class="sidebar-text ms-1">ChefStack</span>
+        </span>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#v-pills-ai" type="button" title="AI Action Center">
+            <i class="bi bi-robot"></i> <span class="sidebar-text">AI Action Center</span>
+        </button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#v-pills-history" type="button" title="Order History">
+            <i class="bi bi-clock-history"></i> <span class="sidebar-text">Order History</span>
+        </button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#v-pills-manage" type="button" title="Inventory Database">
+            <i class="bi bi-boxes"></i> <span class="sidebar-text">Inventory Database</span>
+        </button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#v-pills-docs" type="button" title="Compliance & Docs">
+            <i class="bi bi-folder2-open"></i> <span class="sidebar-text">Compliance & Docs</span>
+        </button>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="mt-auto">
+        <hr class="border-secondary my-4">
+        <a href="{% url 'kitchen_login' %}" class="nav-link text-info px-3 py-2 d-block fw-bold" title="Kitchen Terminal">
+            <i class="bi bi-arrow-left-circle"></i> <span class="sidebar-text ms-1">Kitchen Terminal</span>
+        </a>
+        <a href="{% url 'manager_logout' %}" class="nav-link text-danger px-3 py-2 d-block fw-bold mt-2" title="Secure Logout">
+            <i class="bi bi-box-arrow-right"></i> <span class="sidebar-text ms-1">Secure Logout</span>
+        </a>
+    </div>
+</div>

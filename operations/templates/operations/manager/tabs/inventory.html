@@ -1,0 +1,101 @@
+<div class="tab-pane fade" id="v-pills-manage">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0">Inventory Database</h2>
+        <div>
+            <button class="btn btn-outline-secondary btn-custom me-2 shadow-sm fw-bold text-body" data-bs-toggle="modal" data-bs-target="#addVendorModal"><i class="bi bi-building-add me-1"></i> New Vendor</button>
+            <button class="btn btn-danger btn-custom shadow-sm" data-bs-toggle="modal" data-bs-target="#addItemModal" style="background-color: var(--accent-red); border: none;"><i class="bi bi-plus-lg me-1"></i> New Item</button>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="card mb-5 shadow-sm">
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle m-0">
+                <thead>
+                    <tr><th class="ps-4">Item</th><th>Category</th><th>Vendor</th><th>Stock</th><th>Thresholds</th><th class="text-end pe-4">Actions</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in all_items %}
+                    <tr>
+                        <td class="ps-4 fw-bold">{{ item.name }}</td>
+                        <td><span class="badge" style="background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-secondary);">{{ item.category.name|default:'Uncategorized' }}</span></td>
+                        <td><span class="badge bg-secondary">{{ item.vendor.name }}</span></td>
+                        <td class="fw-bold">{{ item.current_stock }} <span class="text-secondary fw-normal">{{ item.unit_measure }}</span></td>
+                        <td>{{ item.min_qty }} <i class="bi bi-arrow-right-short text-secondary"></i> {{ item.max_qty }}</td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="openEditModal({{ item.id }}, '{{ item.name|escapejs }}', {{ item.vendor.id }}, {{ item.category.id|default:'null' }}, '{{ item.unit_measure|escapejs }}', {{ item.current_stock }}, {{ item.min_qty }}, {{ item.max_qty }})"><i class="bi bi-pencil-square"></i></button>
+                            <form action="{% url 'manager_dashboard' %}" method="POST" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_item">
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete {{ item.name|escapejs }}?');"><i class="bi bi-trash3"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Categories Table -->
+        <div class="col-lg-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold m-0">Categories</h4>
+                <button class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#addCategoryModal"><i class="bi bi-plus"></i> Add</button>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover m-0">
+                        <tbody>
+                            {% for cat in categories %}
+                            <tr>
+                                <td class="ps-4 fw-bold align-middle">{{ cat.name }}</td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-link text-secondary" onclick="openEditCategoryModal({{ cat.id }}, '{{ cat.name|escapejs }}')"><i class="bi bi-pencil"></i></button>
+                                    <form action="{% url 'manager_dashboard' %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_category">
+                                        <input type="hidden" name="category_id" value="{{ cat.id }}">
+                                        <button type="submit" class="btn btn-sm btn-link text-danger" onclick="return confirm('Delete category?');"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendors Table -->
+        <div class="col-lg-8">
+            <h4 class="fw-bold mb-3">Distributor Logistics</h4>
+            <div class="card shadow-sm">
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover align-middle m-0">
+                        <thead><tr><th class="ps-4">Vendor</th><th>Contact</th><th>Schedule</th><th class="text-end pe-4">Actions</th></tr></thead>
+                        <tbody>
+                            {% for vendor in vendors %}
+                            <tr>
+                                <td class="ps-4 fw-bold">{{ vendor.name }}</td>
+                                <td><span class="badge bg-secondary">{{ vendor.contacts.first.contact_type }}</span><br><small class="text-secondary">{{ vendor.contacts.first.contact_value }}</small></td>
+                                <td class="small" style="max-width: 250px;"><span class="text-secondary">Lead Time: {{ vendor.lead_time_days }} Days</span></td>
+                                <td class="text-end pe-4">
+                                    <form action="{% url 'manager_dashboard' %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_vendor">
+                                        <input type="hidden" name="vendor_id" value="{{ vendor.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Delete this vendor?');"><i class="bi bi-trash3"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

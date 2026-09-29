@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChefStack | {% block title %}{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+        /* Global UI Variables - DARK MODE (Default) */
+        :root, [data-theme="dark"] {
+            --bg-dark: #0f0f11;
+            --surface-dark: #1a1a1d;
+            --surface-hover: #26262b;
+            --accent-red: #e63946;
+            --accent-red-hover: #d92d3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a5;
+            --border-color: #2c2c31;
+        }
+
+        /* Global UI Variables - LIGHT MODE */
+        [data-theme="light"] {
+            --bg-dark: #f4f5f7;
+            --surface-dark: #ffffff;
+            --surface-hover: #e9ecef;
+            --accent-red: #e63946;
+            --accent-red-hover: #d92d3a;
+            --text-primary: #111111;
+            --text-secondary: #6b7280;
+            --border-color: #d1d5db;
+        }
+
+        /* Base Layout */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Floating Theme Toggle Button */
+        .theme-toggle-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            z-index: 1050;
+        }
+        .btn-theme-toggle {
+            background-color: var(--surface-dark);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-theme-toggle:hover {
+            background-color: var(--surface-hover);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+    </style>
+
+    <!-- Block for page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Floating Theme Toggle Header -->
+    <div class="theme-toggle-wrapper">
+        <button class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light/Dark Mode">
+            <i class="bi bi-sun-fill" id="themeIcon"></i>
+        </button>
+    </div>
+
+    <!-- Main Content Injection Point -->
+    {% block content %}
+    {% endblock %}
+
+    <!-- Global Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Theme Management Script -->
+    <script>
+        // Check local storage for saved theme on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('chefstack_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        });
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('chefstack_theme', newTheme); // Save preference
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (theme === 'dark') {
+                icon.className = 'bi bi-sun-fill'; // Show sun to indicate clicking makes it light
+            } else {
+                icon.className = 'bi bi-moon-stars-fill'; // Show moon to indicate clicking makes it dark
+            }
+        }
+    </script>
+
+    <!-- Block for page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

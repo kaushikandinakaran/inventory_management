@@ -1,0 +1,153 @@
+<div class="tab-pane fade" id="v-pills-ai" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0"><i class="bi bi-robot text-primary me-2"></i> AI Procurement Engine</h2>
+        <button class="btn btn-outline-light btn-custom" onclick="location.reload();"><i class="bi bi-arrow-clockwise me-2"></i> Refresh</button>
+    </div>
+
+    <!-- ACTION REQUIRED: INTERACTIVE ORDER PAD -->
+    {% if action_vendors %}
+        <div class="mb-5">
+            <h4 class="fw-bold mb-3"><i class="bi bi-cart-check text-warning me-2"></i> Action Required: Pending Orders</h4>
+            <div class="row">
+                {% for vendor, items in action_vendors.items %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm" style="border-color: var(--border-color);">
+                        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center py-3">
+                            <span><i class="bi bi-truck me-2"></i> {{ vendor.name }}</span>
+                            <span class="badge bg-secondary">{{ items|length }} Items Pending</span>
+                        </div>
+                        <div class="card-body p-0" style="background-color: var(--surface-dark);">
+                            <form method="POST" action="{% url 'manager_dashboard' %}" class="m-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve_custom_order">
+                                <input type="hidden" name="vendor_id" value="{{ vendor.id }}">
+
+                                <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                                    {% for item in items %}
+                                    <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center py-3" style="border-bottom: 1px solid var(--border-color);">
+
+                                        <!-- Checkbox and Name -->
+                                        <div class="form-check d-flex align-items-center mb-0 gap-2 w-50">
+                                            <input class="form-check-input mb-0 cursor-pointer" type="checkbox" name="selected_items" value="{{ item.uid }}" id="chk_{{ item.uid }}" checked style="width: 20px; height: 20px; border-color: var(--text-secondary); background-color: var(--bg-dark);">
+                                            <label class="form-check-label text-white ms-2 text-truncate" for="chk_{{ item.uid }}" style="cursor: pointer;">
+                                                <span class="fw-bold">{{ item.name }}</span> <br>
+
+                                                <!-- Badges for context -->
+                                                {% if item.is_special %}
+                                                    {% if item.is_emergency %}
+                                                        <span class="badge bg-danger mt-1">Priority Request</span>
+                                                    {% else %}
+                                                        <span class="badge text-dark mt-1" style="background-color: #4cc9f0;">Kitchen Request</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-secondary mt-1">Low Stock</span>
+                                                {% endif %}
+                                            </label>
+                                        </div>
+
+                                        <!-- Quantity Input -->
+                                        <div class="d-flex align-items-center justify-content-end w-50">
+                                            <input type="number" name="qty_{{ item.uid }}" value="{{ item.qty }}" step="0.5" min="0.5" class="form-control text-center text-white me-2 fw-bold" style="width: 70px; background-color: var(--bg-dark); border: 1px solid var(--border-color);">
+                                            <span class="small text-secondary" style="width: 40px;">{{ item.unit }}</span>
+                                        </div>
+
+                                        <!-- Hidden routing data -->
+                                        <input type="hidden" name="item_id_{{ item.uid }}" value="{{ item.item_id }}">
+                                        <input type="hidden" name="type_{{ item.uid }}" value="{{ item.type }}">
+                                        {% if item.is_special %}
+                                        <input type="hidden" name="req_id_{{ item.uid }}" value="{{ item.req_id }}">
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="card-footer bg-dark border-0 p-3">
+                                    <button type="submit" class="btn btn-warning w-100 fw-bold text-dark py-2"><i class="bi bi-send-check me-2"></i> Approve & Send Selection</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- PENDING DRAFTS (From the data pipeline script if still utilized) -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 fw-bold"><i class="bi bi-inbox me-2"></i> Pending Review</h5>
+                    <span class="badge bg-warning text-dark rounded-pill">{{ pending_drafts.count }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if pending_drafts %}
+                        <div class="list-group list-group-flush" style="border-radius: 0 0 12px 12px; overflow: hidden;">
+                            {% for draft in pending_drafts %}
+                                <div class="list-group-item bg-transparent" style="border-bottom: 1px solid var(--border-color); padding: 20px;">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h5 class="text-white fw-bold mb-1">{{ draft.vendor.name }}</h5>
+                                            <small class="text-secondary">Generated: {{ draft.created_at|date:"M d, h:i A" }}</small>
+                                        </div>
+                                        <span class="badge" style="background-color: var(--surface-hover); border: 1px solid var(--border-color); color: var(--text-secondary);">Draft</span>
+                                    </div>
+                                    <div class="p-3 rounded mb-3" style="background-color: var(--bg-dark); border: 1px solid var(--border-color); font-family: monospace; font-size: 0.9rem; color: #a0a0a5; white-space: pre-wrap;">{{ draft.ai_generated_text }}</div>
+                                    <form method="POST" action="{% url 'manager_dashboard' %}" class="d-flex gap-2 m-0">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="draft_id" value="{{ draft.id }}">
+                                        <button type="submit" name="action" value="approve_draft" class="btn btn-success flex-grow-1 fw-bold"><i class="bi bi-send me-2"></i> Approve & Send</button>
+                                        <button type="submit" name="action" value="reject_draft" class="btn btn-outline-danger px-3"><i class="bi bi-trash3"></i></button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center p-5 text-secondary">
+                            <i class="bi bi-check2-circle mb-3" style="font-size: 3rem;"></i>
+                            <h6 class="fw-bold">Inbox Zero</h6>
+                            <p class="small mb-0">No pending drafts to review.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- APPROVED / SENT HISTORY -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 fw-bold"><i class="bi bi-clock-history me-2"></i> Recently Sent</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if approved_drafts %}
+                        <div class="list-group list-group-flush" style="border-radius: 0 0 12px 12px; overflow: hidden;">
+                            {% for draft in approved_drafts %}
+                                <div class="list-group-item bg-transparent" style="border-bottom: 1px solid var(--border-color); padding: 15px 20px;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong class="text-white">{{ draft.vendor.name }}</strong>
+                                            <div class="small text-success mt-1"><i class="bi bi-check-all me-1"></i> Sent {{ draft.sent_at|date:"M d, h:i A" }}</div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-light text-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDraft{{ draft.id }}">
+                                            View
+                                        </button>
+                                    </div>
+                                    <div class="collapse mt-3" id="collapseDraft{{ draft.id }}">
+                                        <div class="p-3 rounded" style="background-color: var(--bg-dark); border: 1px solid var(--border-color); font-family: monospace; font-size: 0.85rem; color: #a0a0a5; white-space: pre-wrap;">{{ draft.ai_generated_text }}</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center p-5 text-secondary">
+                            <i class="bi bi-receipt mb-3" style="font-size: 3rem;"></i>
+                            <h6 class="fw-bold">No History</h6>
+                            <p class="small mb-0">Sent orders will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

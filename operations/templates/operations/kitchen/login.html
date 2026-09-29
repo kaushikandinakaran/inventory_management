@@ -1,0 +1,85 @@
+{% extends 'operations/base.html' %}
+
+{% block title %}Kitchen Terminal Login{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Force Bootstrap components to use our dynamic theme variables */
+    .theme-card {
+        background-color: var(--surface-dark);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .theme-input {
+        background-color: var(--bg-dark);
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color);
+    }
+
+    .theme-input:focus {
+        background-color: var(--bg-dark);
+        border-color: var(--accent-red);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 0.25rem rgba(230, 57, 70, 0.25);
+    }
+
+    .theme-input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.8;
+    }
+
+    .theme-text-muted {
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center h-100 w-100">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-6 col-lg-5">
+            <div class="card theme-card shadow-lg rounded-4 p-4">
+                <div class="card-body text-center">
+
+                    <h1 class="display-5 fw-bold mb-1" style="color: var(--accent-red);">ChefStack</h1>
+                    <p class="theme-text-muted mb-4 fs-5">Kitchen Terminal Access</p>
+
+                    <!-- Django Error Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-danger rounded-3" role="alert">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Login Form -->
+                    <form method="POST" action="{% url 'kitchen_login' %}">
+                        {% csrf_token %}
+
+                        <div class="mb-4 text-start">
+                            <label class="form-label fw-bold">Tablet ID</label>
+                            <!-- Replaced form.kitchen_login_id with manual HTML to inject theme classes -->
+                            <input type="text" name="username" class="form-control form-control-lg theme-input" placeholder="Enter Tablet ID" required>
+                        </div>
+
+                        <div class="mb-5 text-start">
+                            <label class="form-label fw-bold">PIN / Password</label>
+                            <!-- Replaced form.password with manual HTML to inject theme classes -->
+                            <input type="password" name="password" class="form-control form-control-lg theme-input" placeholder="Enter PIN" required>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-lg rounded-3 py-3 fw-bold fs-5 shadow-sm" style="background-color: var(--accent-red); color: #ffffff; border: none;">
+                                Unlock Terminal
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

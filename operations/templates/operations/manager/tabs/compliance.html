@@ -1,0 +1,33 @@
+<div class="tab-pane fade" id="v-pills-docs">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0">Document Center</h2>
+        <button class="btn btn-danger btn-custom shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadDocModal" style="background-color: var(--accent-red); border: none;"><i class="bi bi-cloud-arrow-up me-1"></i> Upload Document</button>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle m-0" id="docsTable">
+                <thead><tr><th class="ps-4">Document Name</th><th>Category</th><th>Upload Date</th><th class="text-end pe-4">Actions</th></tr></thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td class="ps-4 fw-bold"><i class="bi bi-file-earmark-text text-info me-2"></i>{{ doc.doc_name }}</td>
+                        <td><span class="badge bg-secondary">{{ doc.doc_category }}</span></td>
+                        <td class="text-secondary small">{{ doc.upload_date|date:"Y-m-d" }}</td>
+                        <td class="text-end pe-4">
+                            {% if doc.file_path %}
+                                <a href="{{ doc.file_path.url }}" target="_blank" class="btn btn-sm btn-outline-info me-2"><i class="bi bi-eye"></i> View</a>
+                            {% endif %}
+                            <form action="{% url 'manager_dashboard' %}" method="POST" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_document">
+                                <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete document?');"><i class="bi bi-trash3"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

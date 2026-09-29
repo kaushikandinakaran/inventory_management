@@ -1,0 +1,513 @@
+{% extends 'operations/base.html' %}
+
+{% block title %}OpsHub Command Center{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- LAYOUT OVERRIDES --- */
+    .dashboard-wrapper { display: flex; width: 100%; height: 100vh; overflow: hidden; }
+    .dashboard-content { flex-grow: 1; padding: 40px; overflow-y: auto; background-color: var(--bg-dark); }
+
+    /* --- SIDEBAR BASE & ANIMATION --- */
+    .sidebar { width: 280px; background-color: var(--surface-dark); border-right: 1px solid var(--border-color); padding: 30px 15px; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .sidebar-brand { font-weight: 800; font-size: 1.4rem; color: var(--accent-red); display: block; white-space: nowrap; overflow: hidden; }
+
+    /* --- SIDEBAR COLLAPSED STATE --- */
+    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed .sidebar-text, .sidebar.collapsed .dropdown-toggle::after { display: none; }
+    .sidebar.collapsed .sidebar-brand { font-size: 1.5rem; }
+    .sidebar.collapsed .nav-pills .nav-link { text-align: center; padding: 12px 0; }
+    .sidebar.collapsed .nav-pills .nav-link i { width: 100%; margin-right: 0 !important; font-size: 1.3rem; }
+
+    /* --- NAVIGATION PILLS --- */
+    .nav-pills .nav-link { color: var(--text-secondary); border-radius: 8px; margin-bottom: 10px; font-weight: 600; padding: 12px 20px; transition: all 0.2s; text-align: left; cursor: pointer;}
+    .nav-pills .nav-link i { width: 25px; display: inline-block; }
+    .nav-pills .nav-link.active { background-color: var(--accent-red); color: white; }
+    .nav-pills .nav-link:hover:not(.active) { background-color: var(--surface-hover); color: var(--text-primary); }
+
+    .tab-pane { display: none !important; opacity: 1 !important; }
+    .tab-pane.force-show { display: block !important; }
+
+    /* --- CARDS & TABLES --- */
+    .card { background-color: var(--surface-dark); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 25px; box-shadow: none; color: var(--text-primary); }
+    .card-header { background-color: var(--surface-hover); border-bottom: 1px solid var(--border-color); padding: 15px 25px; border-radius: 12px 12px 0 0 !important; }
+
+    .table { --bs-table-color: var(--text-primary); --bs-table-bg: transparent; --bs-table-border-color: var(--border-color); --bs-table-hover-color: var(--text-primary); --bs-table-hover-bg: var(--surface-hover); margin: 0; }
+    .table th { color: var(--text-secondary) !important; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; border-bottom: 2px solid var(--border-color); background-color: var(--surface-hover); }
+    .table td { vertical-align: middle; background-color: var(--surface-dark); border-color: var(--border-color); color: var(--text-primary) !important; }
+    .table-hover tbody tr:hover td { background-color: var(--surface-hover); }
+
+    .btn-custom { border-radius: 50px; font-weight: 600; padding: 8px 20px; }
+    .form-control, .form-select { background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { border-color: var(--accent-red); box-shadow: 0 0 0 0.25rem rgba(230, 57, 70, 0.25); background-color: var(--bg-dark); color: var(--text-primary);}
+    .form-label { font-weight: 600; }
+    .modal-content { background-color: var(--surface-dark); border: 1px solid var(--border-color); border-radius: 16px; color: var(--text-primary); }
+    .modal-header { border-bottom: 1px solid var(--border-color); }
+    .modal-footer { border-top: 1px solid var(--border-color); background-color: var(--surface-hover); border-radius: 0 0 16px 16px;}
+    .form-check-input { background-color: var(--bg-dark); border-color: var(--border-color); }
+    .form-check-input:checked { background-color: var(--accent-red); border-color: var(--accent-red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <!-- ==========================================
+         EMBEDDED SIDEBAR WITH RBAC SWITCHER
+         ========================================== -->
+    <div class="sidebar" id="managerSidebar">
+        <div class="sidebar-brand mb-4 d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-fire me-2"></i>ChefStack</span>
+            <button class="btn btn-link text-secondary p-0 d-md-none" onclick="toggleSidebar()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        {% if is_admin %}
+            <!-- RESTAURANT SWITCHER DROPDOWN (ADMIN ONLY) -->
+            <div class="dropdown mb-4">
+                <button class="btn btn-dark dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center shadow-sm" type="button" data-bs-toggle="dropdown" style="background-color: var(--bg-dark); border-color: var(--border-color); border-radius: 8px;">
+                    <span class="text-truncate fw-bold text-white"><i class="bi bi-shop me-2"></i><span class="sidebar-text">{{ restaurant.name }}</span></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark w-100 shadow-lg" style="border: 1px solid var(--border-color); background-color: var(--surface-dark);">
+                    {% for r in all_restaurants %}
+                    <li>
+                        <form method="POST" action="{% url 'manager_dashboard' %}" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="switch_restaurant">
+                            <input type="hidden" name="restaurant_id" value="{{ r.id }}">
+                            <button type="submit" class="dropdown-item {% if r.id == restaurant.id %}active bg-primary{% endif %} py-2">
+                                {{ r.name }}
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider border-secondary"></li>
+                    <li>
+                        <a class="dropdown-item text-info fw-bold py-2" href="#" data-bs-toggle="modal" data-bs-target="#createRestaurantModal">
+                            <i class="bi bi-plus-circle me-2"></i>New Location
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        {% else %}
+            <!-- STATIC RESTAURANT DISPLAY (MANAGER & USER) -->
+            <div class="mb-4 px-3 py-2 rounded" style="background-color: var(--bg-dark); border: 1px solid var(--border-color);">
+                <span class="text-truncate fw-bold text-white"><i class="bi bi-shop me-2"></i><span class="sidebar-text">{{ restaurant.name }}</span></span>
+            </div>
+        {% endif %}
+
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="#v-pills-ai" data-bs-target="#v-pills-ai">
+                    <i class="bi bi-robot"></i> <span class="sidebar-text">AI Action Center</span>
+                </a>
+            </li>
+            <li class="nav-item mt-3">
+                <a class="nav-link" href="#v-pills-history" data-bs-target="#v-pills-history">
+                    <i class="bi bi-clock-history"></i> <span class="sidebar-text">Order History</span>
+                </a>
+            </li>
+            <li class="nav-item mt-3">
+                <a class="nav-link" href="#v-pills-manage" data-bs-target="#v-pills-manage">
+                    <i class="bi bi-boxes"></i> <span class="sidebar-text">Inventory Database</span>
+                </a>
+            </li>
+            {% if is_manager %}
+            <li class="nav-item mt-3">
+                <a class="nav-link" href="#v-pills-terminals" data-bs-target="#v-pills-terminals">
+                    <i class="bi bi-people"></i> <span class="sidebar-text">Team Access</span>
+                </a>
+            </li>
+            {% endif %}
+            <li class="nav-item mt-3">
+                <a class="nav-link" href="#v-pills-docs" data-bs-target="#v-pills-docs">
+                    <i class="bi bi-folder-check"></i> <span class="sidebar-text">Compliance & Docs</span>
+                </a>
+            </li>
+        </ul>
+        <hr class="border-secondary mt-5">
+        <ul class="nav nav-pills flex-column">
+            <li class="nav-item">
+                <a href="{% url 'kitchen_login' %}" class="nav-link text-info">
+                    <i class="bi bi-arrow-left-circle"></i> <span class="sidebar-text">Kitchen Terminal</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'manager_logout' %}" class="nav-link text-danger">
+                    <i class="bi bi-box-arrow-right"></i> <span class="sidebar-text">Secure Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    <!-- ========================================== -->
+
+    <div class="dashboard-content">
+
+        {% if is_basic_user %}
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" style="background-color: rgba(255, 193, 7, 0.1); color: #ffc107;" role="alert">
+                <i class="bi bi-eye-fill me-3 fs-4"></i>
+                <div>
+                    <strong>Read-Only Mode Active</strong><br>
+                    <span class="small">You are logged in with a Terminal User account. Modifying inventory or sending orders requires Manager privileges.</span>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Django Alert Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" style="background-color: #198754; color: white;" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {{ message }}
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="tab-content" id="v-pills-tabContent">
+
+            <!-- AI ACTION CENTER (WITH RBAC) -->
+            <div class="tab-pane fade" id="v-pills-ai" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold m-0"><i class="bi bi-robot text-primary me-2"></i> AI Procurement Engine</h2>
+                    <button class="btn btn-outline-light btn-custom" onclick="location.reload();"><i class="bi bi-arrow-clockwise me-2"></i> Refresh</button>
+                </div>
+
+                {% if action_vendors %}
+                    <div class="mb-5">
+                        <h4 class="fw-bold mb-3"><i class="bi bi-cart-check text-warning me-2"></i> Action Required: Pending Orders</h4>
+                        <div class="row">
+                            {% for vendor, items in action_vendors.items %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100 shadow-sm" style="border-color: var(--border-color);">
+                                    <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center py-3">
+                                        <span><i class="bi bi-truck me-2"></i> {{ vendor.name }}</span>
+                                        <span class="badge bg-secondary">{{ items|length }} Items Pending</span>
+                                    </div>
+                                    <div class="card-body p-0" style="background-color: var(--surface-dark);">
+                                        <form method="POST" action="{% url 'manager_dashboard' %}" class="m-0">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="approve_custom_order">
+                                            <input type="hidden" name="vendor_id" value="{{ vendor.id }}">
+                                            <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                                                {% for item in items %}
+                                                <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center py-3" style="border-bottom: 1px solid var(--border-color);">
+                                                    <div class="form-check d-flex align-items-center mb-0 gap-2 w-50">
+                                                        <input class="form-check-input mb-0 cursor-pointer" type="checkbox" name="selected_items" value="{{ item.uid }}" id="chk_{{ item.uid }}" checked {% if is_basic_user %}disabled{% endif %} style="width: 20px; height: 20px; border-color: var(--text-secondary); background-color: var(--bg-dark);">
+                                                        <label class="form-check-label text-white ms-2 text-truncate" for="chk_{{ item.uid }}" style="cursor: pointer;">
+                                                            <span class="fw-bold">{{ item.name }}</span> <br>
+                                                            {% if item.is_special %}
+                                                                {% if item.is_emergency %}<span class="badge bg-danger mt-1">Priority Request</span>
+                                                                {% else %}<span class="badge text-dark mt-1" style="background-color: #4cc9f0;">Kitchen Request</span>{% endif %}
+                                                            {% else %}<span class="badge bg-secondary mt-1">Low Stock</span>{% endif %}
+                                                        </label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center justify-content-end w-50">
+                                                        <input type="number" name="qty_{{ item.uid }}" value="{{ item.qty }}" step="0.5" min="0.5" class="form-control text-center text-white me-2 fw-bold" {% if is_basic_user %}disabled{% endif %} style="width: 70px; background-color: var(--bg-dark); border: 1px solid var(--border-color);">
+                                                        <span class="small text-secondary" style="width: 40px;">{{ item.unit }}</span>
+                                                    </div>
+                                                    <input type="hidden" name="item_id_{{ item.uid }}" value="{{ item.item_id }}">
+                                                    <input type="hidden" name="type_{{ item.uid }}" value="{{ item.type }}">
+                                                    {% if item.is_special %}<input type="hidden" name="req_id_{{ item.uid }}" value="{{ item.req_id }}">{% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% if is_manager %}
+                                            <div class="card-footer bg-dark border-0 p-3">
+                                                <button type="submit" class="btn btn-warning w-100 fw-bold text-dark py-2"><i class="bi bi-send-check me-2"></i> Approve & Send Selection</button>
+                                            </div>
+                                            {% endif %}
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- HISTORY TAB (READ ONLY FOR ALL) -->
+            {% include 'operations/manager/tabs/history.html' %}
+
+            <!-- INVENTORY TAB (WITH RBAC) -->
+            <div class="tab-pane fade" id="v-pills-manage">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold m-0">Inventory Database</h2>
+                    {% if is_manager %}
+                    <div>
+                        <button class="btn btn-outline-secondary btn-custom me-2 shadow-sm fw-bold text-body" data-bs-toggle="modal" data-bs-target="#addVendorModal"><i class="bi bi-building-add me-1"></i> New Vendor</button>
+                        <button class="btn btn-danger btn-custom shadow-sm" data-bs-toggle="modal" data-bs-target="#addItemModal" style="background-color: var(--accent-red); border: none;"><i class="bi bi-plus-lg me-1"></i> New Item</button>
+                    </div>
+                    {% endif %}
+                </div>
+                <!-- Items Table -->
+                <div class="card mb-5 shadow-sm">
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-hover align-middle m-0">
+                            <thead><tr><th class="ps-4">Item</th><th>Category</th><th>Vendor</th><th>Stock</th><th>Thresholds</th>{% if is_manager %}<th class="text-end pe-4">Actions</th>{% endif %}</tr></thead>
+                            <tbody>
+                                {% for item in all_items %}
+                                <tr>
+                                    <td class="ps-4 fw-bold">{{ item.name }}</td>
+                                    <td><span class="badge" style="background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-secondary);">{{ item.category.name|default:'Uncategorized' }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ item.vendor.name }}</span></td>
+                                    <td class="fw-bold">{{ item.current_stock }} <span class="text-secondary fw-normal">{{ item.unit_measure }}</span></td>
+                                    <td>{{ item.min_qty }} <i class="bi bi-arrow-right-short text-secondary"></i> {{ item.max_qty }}</td>
+                                    {% if is_manager %}
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary me-2" onclick="openEditModal({{ item.id }}, '{{ item.name|escapejs }}', {{ item.vendor.id }}, {{ item.category.id|default:'null' }}, '{{ item.unit_measure|escapejs }}', {{ item.current_stock }}, {{ item.min_qty }}, {{ item.max_qty }})"><i class="bi bi-pencil-square"></i></button>
+                                        <form action="{% url 'manager_dashboard' %}" method="POST" style="display:inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_item">
+                                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete {{ item.name|escapejs }}?');"><i class="bi bi-trash3"></i></button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPLIANCE TAB -->
+            {% include 'operations/manager/tabs/compliance.html' %}
+
+            <!-- TEAM ACCESS TAB (MANAGERS & ADMINS ONLY) -->
+            {% if is_manager %}
+            <div class="tab-pane fade" id="v-pills-terminals">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold m-0">Team Access</h2>
+                    <button class="btn btn-info btn-custom text-dark fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#createTerminalModal"><i class="bi bi-person-plus me-1"></i> Add Account</button>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-hover align-middle m-0">
+                            <thead><tr><th class="ps-4">Username</th><th>Role</th><th>Assigned Location</th><th class="text-end pe-4">Actions</th></tr></thead>
+                            <tbody>
+                                {% for t_user in team_users %}
+                                <tr>
+                                    <td class="ps-4 fw-bold">
+                                        {% if t_user.is_superuser %}<i class="bi bi-shield-lock-fill text-danger me-2"></i>
+                                        {% elif t_user.is_staff %}<i class="bi bi-person-badge-fill text-info me-2"></i>
+                                        {% else %}<i class="bi bi-tablet-landscape text-secondary me-2"></i>{% endif %}
+                                        {{ t_user.username }}
+                                    </td>
+                                    <td>
+                                        {% if t_user.is_superuser %}<span class="badge bg-danger">Administrator</span>
+                                        {% elif t_user.is_staff %}<span class="badge bg-info text-dark">Manager</span>
+                                        {% else %}<span class="badge bg-secondary">Terminal User</span>{% endif %}
+                                    </td>
+                                    <td><span class="badge border border-secondary text-secondary">{{ t_user.restaurant.name|default:"All" }}</span></td>
+                                    <td class="text-end pe-4">
+                                        <!-- Edit Button -->
+                                        <button type="button" class="btn btn-sm btn-outline-info me-2" onclick="openEditTeamModal('{{ t_user.id }}', '{{ t_user.username|escapejs }}', '{% if t_user.is_superuser %}admin{% elif t_user.is_staff %}manager{% else %}user{% endif %}')" {% if not is_admin and t_user.is_superuser %}disabled{% endif %}><i class="bi bi-pencil"></i> Edit</button>
+                                        <!-- Delete Button -->
+                                        <form action="{% url 'manager_dashboard' %}" method="POST" style="display:inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_team_member">
+                                            <input type="hidden" name="user_id" value="{{ t_user.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Revoke access for {{ t_user.username|escapejs }}?');" {% if not is_admin and t_user.is_superuser %}disabled{% endif %}><i class="bi bi-trash3"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-secondary py-4">No team logins created for this location yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     EMBEDDED MODALS
+     ========================================== -->
+{% include 'operations/manager/modals/forms.html' %}
+
+{% if is_admin %}
+<!-- CREATE RESTAURANT MODAL -->
+<div class="modal fade" id="createRestaurantModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shop text-info me-2"></i> Create New Location</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'manager_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_restaurant">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Restaurant / Venue Name</label>
+                        <input type="text" name="restaurant_name" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light btn-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info btn-custom text-dark fw-bold">Create Venue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if is_manager %}
+<!-- CREATE TEAM LOGIN MODAL -->
+<div class="modal fade" id="createTerminalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus text-info me-2"></i> Create Team Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'manager_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_team_member">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Access Role</label>
+                        <select name="role" class="form-select fw-bold" required>
+                            <option value="user" selected>Terminal User (Read-Only)</option>
+                            {% if is_admin %}
+                            <option value="manager">Store Manager</option>
+                            <option value="admin">System Administrator</option>
+                            {% endif %}
+                        </select>
+                        {% if not is_admin %}
+                        <small class="text-secondary mt-1 d-block"><i class="bi bi-lock me-1"></i> Only System Admins can create Management roles.</small>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" placeholder="e.g., ram_{{ restaurant.name|slugify }}" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light btn-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info btn-custom text-dark fw-bold">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT TEAM LOGIN MODAL -->
+<div class="modal fade" id="editTerminalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-gear text-info me-2"></i> Edit Team Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'manager_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_team_member">
+                <input type="hidden" name="user_id" id="edit_team_user_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Access Role</label>
+                        <select name="role" id="edit_team_role" class="form-select fw-bold" required>
+                            <option value="user">Terminal User (Read-Only)</option>
+                            {% if is_admin %}
+                            <option value="manager">Store Manager</option>
+                            <option value="admin">System Administrator</option>
+                            {% endif %}
+                        </select>
+                        {% if not is_admin %}
+                        <small class="text-secondary mt-1 d-block"><i class="bi bi-lock me-1"></i> Only System Admins can assign Management roles.</small>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" id="edit_team_username" class="form-control" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current password" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light btn-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info btn-custom text-dark fw-bold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('managerSidebar');
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('managerSidebarCollapsed', sidebar.classList.contains('collapsed'));
+    }
+
+    let idleTime = 0;
+    setInterval(() => { if (++idleTime >= 15) window.location.href = "{% url 'manager_logout' %}"; }, 60000);
+    const resetTimer = () => { idleTime = 0; };
+    ['click', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => document.addEventListener(evt, resetTimer, true));
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (localStorage.getItem('managerSidebarCollapsed') === 'true') {
+            document.getElementById('managerSidebar').classList.add('collapsed');
+        }
+
+        const allPanes = document.querySelectorAll('.tab-pane');
+        const allNavLinks = document.querySelectorAll('.nav-pills .nav-link');
+
+        function directTabSwitch(targetId) {
+            allPanes.forEach(pane => pane.classList.remove('force-show', 'show', 'active'));
+            allNavLinks.forEach(btn => btn.classList.remove('active'));
+            const targetPane = document.querySelector(targetId);
+            if (targetPane) targetPane.classList.add('force-show');
+            allNavLinks.forEach(btn => {
+                const href = btn.getAttribute('href');
+                const dataTarget = btn.getAttribute('data-bs-target');
+                if (href === targetId || dataTarget === targetId) btn.classList.add('active');
+            });
+            localStorage.setItem('chefstack_current_tab', targetId);
+        }
+
+        allNavLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                const target = this.getAttribute('data-bs-target') || this.getAttribute('href');
+                if (target && target.startsWith('#')) {
+                    e.preventDefault(); e.stopPropagation(); directTabSwitch(target);
+                }
+            });
+        });
+
+        const savedTab = localStorage.getItem('chefstack_current_tab') || '#v-pills-ai';
+        directTabSwitch(savedTab);
+
+        setTimeout(() => { document.querySelectorAll('.alert-dismissible').forEach(alert => { if (typeof bootstrap !== 'undefined') new bootstrap.Alert(alert).close(); else alert.remove(); }); }, 3000);
+    });
+
+    // Open Edit Team Member Modal
+    {% if is_manager %}
+    const editTeamModal = new bootstrap.Modal(document.getElementById('editTerminalModal'));
+    function openEditTeamModal(id, username, role) {
+        document.getElementById('edit_team_user_id').value = id;
+        document.getElementById('edit_team_username').value = username;
+        document.getElementById('edit_team_role').value = role;
+        editTeamModal.show();
+    }
+    {% endif %}
+</script>
+{% endblock %}
