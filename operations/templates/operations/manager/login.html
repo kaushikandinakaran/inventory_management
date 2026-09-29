@@ -1,0 +1,53 @@
+{% extends 'operations/base.html' %}
+
+{% block title %}OpsHub Login{% endblock %}
+
+{% block extra_css %}
+<style>
+    .theme-card { background-color: var(--surface-dark); border: 1px solid var(--border-color); color: var(--text-primary); }
+    .theme-input { background-color: var(--bg-dark); color: var(--text-primary) !important; border: 1px solid var(--border-color); }
+    .theme-input:focus { background-color: var(--bg-dark); border-color: #4cc9f0; color: var(--text-primary); box-shadow: 0 0 0 0.25rem rgba(76, 201, 240, 0.25); }
+    .theme-input::placeholder { color: var(--text-secondary); opacity: 0.8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center h-100 w-100">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-6 col-lg-4">
+            <div class="card theme-card shadow-lg rounded-4 p-4">
+                <div class="card-body text-center">
+
+                    <h2 class="fw-bold mb-1" style="color: #4cc9f0;"><i class="bi bi-shield-lock me-2"></i>OpsHub</h2>
+                    <p class="text-secondary mb-4">Manager Authentication</p>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-danger rounded-3 py-2 small" role="alert">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" action="{% url 'manager_login' %}">
+                        {% csrf_token %}
+                        <div class="mb-3 text-start">
+                            <label class="form-label fw-bold small">Username</label>
+                            <input type="text" name="username" class="form-control theme-input py-2" required>
+                        </div>
+                        <div class="mb-4 text-start">
+                            <label class="form-label fw-bold small">Password</label>
+                            <input type="password" name="password" class="form-control theme-input py-2" required>
+                        </div>
+                        <button type="submit" class="btn w-100 rounded-3 py-2 fw-bold shadow-sm" style="background-color: #4cc9f0; color: #0f0f11; border: none;">
+                            Secure Login
+                        </button>
+                    </form>
+
+                    <div class="mt-4">
+                        <a href="{% url 'kitchen_login' %}" class="text-decoration-none small text-secondary"><i class="bi bi-arrow-left me-1"></i> Return to Kitchen Terminal</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
